@@ -17,7 +17,7 @@ const phasermsg = () => {
 }   
 
 export default defineConfig({
-    base: './',
+    base: '/td-game/',
     logLevel: 'warning',
     build: {
         rollupOptions: {
