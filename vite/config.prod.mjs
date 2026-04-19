@@ -20,6 +20,8 @@ export default defineConfig({
     base: '/td-game/',
     logLevel: 'warning',
     build: {
+        outDir: '../docs',
+        emptyOutDir: true,
         rollupOptions: {
             output: {
                 manualChunks: {
