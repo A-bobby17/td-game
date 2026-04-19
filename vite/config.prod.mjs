@@ -1,4 +1,6 @@
 import { defineConfig } from 'vite';
+import fs from 'fs';
+import path from 'path';
 
 const phasermsg = () => {
     return {
@@ -10,17 +12,24 @@ const phasermsg = () => {
             const line = "---------------------------------------------------------";
             const msg = `❤️❤️❤️ Tell us about your game! - games@phaser.io ❤️❤️❤️`;
             process.stdout.write(`${line}\n${msg}\n${line}\n`);
-            
+
             process.stdout.write(`✨ Done ✨\n`);
         }
     }
-}   
+}
+
+const nojekyll = () => ({
+    name: 'nojekyll',
+    closeBundle() {
+        fs.writeFileSync(path.resolve('docs', '.nojekyll'), '');
+    }
+});
 
 export default defineConfig({
     base: '/td-game/',
     logLevel: 'warning',
     build: {
-        outDir: '../docs',
+        outDir: 'docs',
         emptyOutDir: true,
         rollupOptions: {
             output: {
@@ -44,6 +53,7 @@ export default defineConfig({
         port: 8080
     },
     plugins: [
-        phasermsg()
+        phasermsg(),
+        nojekyll()
     ]
 });
