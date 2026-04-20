@@ -529,14 +529,14 @@ export class Game extends Scene
         this.clearModeButtons();
         if (!this.selectedUnit) return;
 
-        const { cx, cy, col } = this.selectedUnit.cell;
+        const unit    = this.selectedUnit;
+        const { cx, cy, col } = unit.cell;
         const spFull  = this.specialGauge >= SPECIAL_MAX;
 
-        // Each row is 27 px; add a row for SPECIAL when the gauge is full.
-        const ROW_H   = 27;
-        const rows    = spFull ? 3 : 2;
-        const W       = 80;
-        const H       = ROW_H * rows;
+        const ROW_H = 30;
+        const rows  = 3;   // always 3 rows — ひっさつ is always visible
+        const W     = 92;
+        const H     = ROW_H * rows;
 
         // Panel sits to the RIGHT of the cell; flips LEFT only for the last column.
         const toRight = col < COLS - 1;
@@ -553,64 +553,58 @@ export class Game extends Scene
         bg.fillRect(0, 0, W, H);
         bg.lineStyle(1, 0x7a5530, 1);
         bg.strokeRect(0, 0, W, H);
-        // Separators between rows
         bg.lineStyle(1, 0x3a2810, 1);
         for (let i = 1; i < rows; i++) bg.lineBetween(6, ROW_H * i, W - 6, ROW_H * i);
         container.add(bg);
 
-        // ── Click absorber ─────────────────────────────────────────────────────
+        // ── Click absorber (prevents clicks falling through to the board) ──────
         const absorber = this.add.zone(W / 2, H / 2, W, H).setInteractive();
         container.add(absorber);
 
-        // ── MOVE and ATTACK (always present) ───────────────────────────────────
-        const base = { fontFamily: 'monospace', fontSize: '12px', color: '#c8a97a' };
+        // ── Buttons ────────────────────────────────────────────────────────────
+        const base = { fontFamily: 'monospace', fontSize: '13px', color: '#c8a97a' };
 
-        const moveBtn = this.add.text(W / 2, ROW_H * 0.5, 'MOVE',   { ...base })
+        const moveBtn = this.add.text(W / 2, ROW_H * 0.5, 'いどう',   { ...base })
             .setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-        const atkBtn  = this.add.text(W / 2, ROW_H * 1.5, 'ATTACK', { ...base })
+        const atkBtn  = this.add.text(W / 2, ROW_H * 1.5, 'たたかう', { ...base })
             .setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-
         container.add([moveBtn, atkBtn]);
 
-        moveBtn.on('pointerdown', () => {
+        moveBtn.on('pointerover',  () => moveBtn.setStyle({ color: '#e8d0a0' }));
+        moveBtn.on('pointerout',   () => moveBtn.setStyle({ color: '#c8a97a' }));
+        moveBtn.on('pointerdown',  () => {
             this.currentMode = 'move';
-            if (this.selectedUnit) this.showMoveHighlights(this.selectedUnit);
-            this.refreshModeButtonStyles(moveBtn, atkBtn);
+            this.clearModeButtons();
+            this.showMoveHighlights(unit);
         });
-        moveBtn.on('pointerover', () => moveBtn.setStyle({ color: '#e8d0a0' }));
-        moveBtn.on('pointerout',  () => this.refreshModeButtonStyles(moveBtn, atkBtn));
 
-        atkBtn.on('pointerdown', () => {
+        atkBtn.on('pointerover',  () => atkBtn.setStyle({ color: '#f08060' }));
+        atkBtn.on('pointerout',   () => atkBtn.setStyle({ color: '#c8a97a' }));
+        atkBtn.on('pointerdown',  () => {
             this.currentMode = 'attack';
-            if (this.selectedUnit) this.showAttackHighlights(this.selectedUnit);
-            this.refreshModeButtonStyles(moveBtn, atkBtn);
+            this.clearModeButtons();
+            this.showAttackHighlights(unit);
         });
-        atkBtn.on('pointerover', () => atkBtn.setStyle({ color: '#f08060' }));
-        atkBtn.on('pointerout',  () => this.refreshModeButtonStyles(moveBtn, atkBtn));
 
-        // ── SPECIAL (only when SP gauge is full) ───────────────────────────────
+        // ── ひっさつ — always visible; only interactive when SP is full ──────────
+        const spColor  = spFull ? '#e8c040' : '#3a3028';
+        const spBtn = this.add.text(W / 2, ROW_H * 2.5, 'ひっさつ',
+            { ...base, color: spColor })
+            .setOrigin(0.5, 0.5);
+        container.add(spBtn);
+
         if (spFull) {
-            const spBtn = this.add.text(W / 2, ROW_H * 2.5, 'SPECIAL',
-                { ...base, color: '#e8c040' })
-                .setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-            container.add(spBtn);
-
-            spBtn.on('pointerdown', () => {
+            spBtn.setInteractive({ useHandCursor: true });
+            spBtn.on('pointerover',  () => spBtn.setStyle({ color: '#fff080' }));
+            spBtn.on('pointerout',   () => spBtn.setStyle({ color: '#e8c040' }));
+            spBtn.on('pointerdown',  () => {
                 console.log('[SPECIAL] button clicked');
+                this.clearModeButtons();
                 this.executeSpecial();
             });
-            spBtn.on('pointerover', () => spBtn.setStyle({ color: '#fff080' }));
-            spBtn.on('pointerout',  () => spBtn.setStyle({ color: '#e8c040' }));
         }
 
         this.modePanel = container;
-        this.refreshModeButtonStyles(moveBtn, atkBtn);
-    }
-
-    private refreshModeButtonStyles (moveBtn: GameObjects.Text, atkBtn: GameObjects.Text): void
-    {
-        moveBtn.setStyle({ color: this.currentMode === 'move'   ? '#e8d0a0' : '#7a6040' });
-        atkBtn .setStyle({ color: this.currentMode === 'attack' ? '#f08060' : '#7a6040' });
     }
 
     private clearModeButtons (): void
@@ -748,12 +742,12 @@ export class Game extends Scene
         bg.fillRect(this.originX, this.originY, gridW, gridH);
         container.add(bg);
 
-        const title = this.add.text(512, midY - 24, 'STAGE CLEAR', {
+        const title = this.add.text(this.scale.width / 2, midY - 24, 'STAGE CLEAR', {
             fontFamily: 'monospace', fontSize: '36px', color: '#e8c040',
         }).setOrigin(0.5, 0.5);
         container.add(title);
 
-        const hint = this.add.text(512, midY + 28, 'click  [ RESET ]  to play again', {
+        const hint = this.add.text(this.scale.width / 2, midY + 28, 'click  [ RESET ]  to play again', {
             fontFamily: 'monospace', fontSize: '12px', color: '#c8a97a',
         }).setOrigin(0.5, 0.5);
         container.add(hint);
@@ -771,12 +765,12 @@ export class Game extends Scene
         bg.fillRect(this.originX, this.originY, gridW, gridH);
         container.add(bg);
 
-        const title = this.add.text(512, midY - 24, 'GAME OVER', {
+        const title = this.add.text(this.scale.width / 2, midY - 24, 'GAME OVER', {
             fontFamily: 'monospace', fontSize: '36px', color: '#e84030',
         }).setOrigin(0.5, 0.5);
         container.add(title);
 
-        const hint = this.add.text(512, midY + 28, 'click  [ RESET ]  to try again', {
+        const hint = this.add.text(this.scale.width / 2, midY + 28, 'click  [ RESET ]  to try again', {
             fontFamily: 'monospace', fontSize: '12px', color: '#c8a97a',
         }).setOrigin(0.5, 0.5);
         container.add(hint);
@@ -869,7 +863,10 @@ export class Game extends Scene
             return;
         }
 
-        if (this.selectedUnit) this.drawUnit(this.selectedUnit, false);
+        if (this.selectedUnit) {
+            this.drawUnit(this.selectedUnit, false);
+            this.clearMoveHighlights();
+        }
 
         if (this.selectedCell) {
             this.drawCell(this.selectedCell, false);
@@ -879,7 +876,6 @@ export class Game extends Scene
         this.selectedUnit = unit;
         this.currentMode = 'move';
         this.drawUnit(unit, true);
-        this.showMoveHighlights(unit);
         this.showModeButtons();
         console.log(`Selected: ${unit.label} at ${unit.cell.label}`);
     }

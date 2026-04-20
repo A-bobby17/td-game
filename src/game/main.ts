@@ -6,8 +6,8 @@ import { AUTO, Game, Scale,Types } from 'phaser';
 // https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config: Types.Core.GameConfig = {
     type: AUTO,
-    width: 1024,
-    height: 870,
+    width: 420,
+    height: 860,
     parent: 'game-container',
     backgroundColor: '#120d05',
     scale: {
